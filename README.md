@@ -92,6 +92,18 @@ Notes:
 
 Strings consisting entirely of Shift-JIS double-byte characters are encoded in Kanji mode (13 bits per character instead of UTF-8 bytes). The Unicode→Shift-JIS mapping is built at runtime from the platform's native `TextDecoder("shift_jis")` rather than shipping a conversion table (~0.4 KB of code, ~5 ms one-time cost). On runtimes without Shift-JIS support, encoding falls back to Byte mode (UTF-8) automatically — the result is always a valid, scannable QR code.
 
+## Bundle size
+
+Measured at v0.1.0. `react` is a peer dependency and is excluded from all measurements.
+
+| Entry | Tool / bundler | Compression | Size |
+| --- | --- | --- | --- |
+| `react-qr-lite/core` (encoder only) | size-limit (esbuild) | Brotli | 4.45 KB |
+| `react-qr-lite` (with `<QRCode />`) | size-limit (esbuild) | Brotli | 4.91 KB |
+| `react-qr-lite` | [Bundlephobia](https://bundlephobia.com/package/react-qr-lite) (webpack) | Gzip | 5.31 KB |
+
+The size-limit numbers are enforced budgets (5 KB core / 6 KB full) — `npm publish` fails if a change exceeds them. Bundlephobia reports a slightly larger number because it measures only the root entry, bundles with webpack (which adds a small runtime wrapper), and compresses with gzip instead of brotli. What your users actually download depends on your CDN: brotli-capable servers deliver close to the size-limit figures.
+
 ## Development
 
 ```bash
