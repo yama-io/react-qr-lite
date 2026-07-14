@@ -1,0 +1,31 @@
+# react-qr-lite
+
+> Fast, tiny QR code generator for React, rendered as SVG. Zero dependencies — the encoder is a from-scratch implementation of ISO/IEC 18004, not a wrapper around an existing library. The framework-agnostic core is 4.48 KB (minified + brotli) and can be used without React.
+
+Key facts:
+
+- Install: `npm install react-qr-lite`. React ≥ 17 is an optional peer dependency (only needed for the component); Node ≥ 16.
+- Basic usage: `import { QRCode } from "react-qr-lite";` then `<QRCode value="https://example.com" />`. The component renders a single SVG (3 DOM nodes: svg / rect / path) and memoizes encoding with useMemo.
+- React-free core: `import { encode, toSvgPath } from "react-qr-lite/core";` — `encode(data, options?)` returns a QRMatrix (`{ size, modules, version, ecLevel, mask }`, row-major flat Uint8Array where 1 = dark), `toSvgPath(matrix)` returns an SVG path `d` string.
+- Full encoder: Numeric / Alphanumeric / Byte (UTF-8) / Kanji modes with automatic mode detection, versions 1–40, error correction levels L/M/Q/H, automatic mask selection. Output is verified end-to-end by decoding with jsQR.
+- `<QRCode />` props: `value` (string | Uint8Array, required), `size` (128), `responsive` (false), `ecLevel` ("M"), `margin` (4), `fgColor` ("#000000"), `bgColor` ("#FFFFFF", "transparent" allowed), `title`, `version` (auto), `minVersion` (1), `mask` (auto). All other props are spread onto the `<svg>`; `ref` is forwarded to it.
+- Errors: `RangeError` for invalid parameters; `Error` when the data does not fit the requested version/level (catch with an Error Boundary when rendering).
+- TypeScript native, dual ESM/CJS build, MIT license.
+
+## Documentation
+
+- [Getting Started](https://yama-io.github.io/react-qr-lite/getting-started/): installation, first QR code, customization, responsive sizing, the React-free core, error handling, accessibility
+- [API Reference](https://yama-io.github.io/react-qr-lite/api/): entry points, full `<QRCode />` props table, `encode` options, `QRMatrix` shape, `toSvgPath`, low-level core exports
+- [Examples](https://yama-io.github.io/react-qr-lite/examples/): error correction levels, custom colors, responsive sizing, Wi-Fi network codes, MECARD contact cards, Kanji mode, raw bytes, core-only SVG rendering
+- [Playground](https://yama-io.github.io/react-qr-lite/playground/): interactive explorer for every option, with live JSX output
+
+## Source & package
+
+- [README (markdown)](https://raw.githubusercontent.com/yama-io/react-qr-lite/main/README.md): full usage documentation in a single markdown file
+- [GitHub repository](https://github.com/yama-io/react-qr-lite): source code, issues
+- [npm package](https://www.npmjs.com/package/react-qr-lite)
+
+## Optional
+
+- [Home](https://yama-io.github.io/react-qr-lite/): landing page (feature overview, bundle-size stats)
+- [License (MIT)](https://github.com/yama-io/react-qr-lite/blob/main/LICENSE)
