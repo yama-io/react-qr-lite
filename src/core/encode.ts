@@ -22,11 +22,18 @@ export interface EncodeOptions {
  * Strings get automatic mode detection (digits -> Numeric, the alphanumeric
  * charset -> Alphanumeric, all double-byte SJIS -> Kanji, anything else ->
  * Byte/UTF-8). A Uint8Array always uses Byte mode.
+ *
+ * @throws {RangeError} when data is neither a string nor a Uint8Array, or an
+ *                      option is invalid
+ * @throws {Error} when the data does not fit the requested version/level
  */
 export function encode(
   data: string | Uint8Array,
   options: EncodeOptions = {},
 ): QRMatrix {
+  if (typeof data !== "string" && !(data instanceof Uint8Array)) {
+    throw new RangeError("encode: data must be a string or Uint8Array");
+  }
   const { ecLevel = "M", version, minVersion = 1, mask = -1 } = options;
   const segments =
     typeof data === "string" ? makeSegments(data) : [makeByteSegment(data)];

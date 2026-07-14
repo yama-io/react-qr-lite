@@ -157,4 +157,11 @@ describe("encode: オプション", () => {
     expect(() => encode("X", { minVersion: 41 })).toThrow(RangeError);
     expect(() => encode("X", { minVersion: 0 })).toThrow(RangeError);
   });
+
+  it("文字列でもUint8Arrayでもない data は RangeError", () => {
+    for (const bad of [null, undefined, 123, [1, 2, 3], {}] as unknown[]) {
+      expect(() => encode(bad as string)).toThrow(RangeError);
+      expect(() => encode(bad as string)).toThrow(/string or Uint8Array/);
+    }
+  });
 });
