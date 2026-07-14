@@ -12,6 +12,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         # 18 = oldest version the dev toolchain supports (vitest/tsup/size-limit)
         node-version: [18, 22, 24]
@@ -26,5 +27,7 @@ jobs:
       - run: npm test
       - run: npm run build
       - run: npm run size
+      # attw checks the packed tarball, so once is enough (and it needs Node >=20)
       - name: Check published types (attw)
+        if: matrix.node-version == 24
         run: npx --yes @arethetypeswrong/cli --pack .
