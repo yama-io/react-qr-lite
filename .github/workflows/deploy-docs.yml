@@ -33,7 +33,13 @@ jobs:
         with:
           node-version: 24
           cache: npm
-          cache-dependency-path: docs/package-lock.json
+          cache-dependency-path: |
+            package-lock.json
+            docs/package-lock.json
+      # Root install too: the docs typecheck ../src (vite alias into the
+      # library sources), whose react imports resolve from the repo root
+      - run: npm ci
+        working-directory: .
       - run: npm ci
       # typegen + tsc + prerender (see docs/package.json)
       - run: npm run build
