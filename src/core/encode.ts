@@ -1,7 +1,10 @@
 import { assertVersion, type ECLevel } from "./capacity";
-import { buildCodewords, chooseVersion } from "./codewords";
+import {
+  buildCodewords,
+  chooseVersion as chooseVersionForSegments,
+} from "./codewords";
 import { buildMatrix, type QRMatrix } from "./matrix";
-import { makeByteSegment, makeSegments } from "./segments";
+import { makeByteSegment, makeSegments, type Segment } from "./segments";
 
 /** Options for encode. */
 export interface EncodeOptions {
@@ -31,18 +34,57 @@ export function encode(
   data: string | Uint8Array,
   options: EncodeOptions = {},
 ): QRMatrix {
-  if (typeof data !== "string" && !(data instanceof Uint8Array)) {
-    throw new RangeError("encode: data must be a string or Uint8Array");
-  }
+  const segments = toSegments(data, "encode");
   const { ecLevel = "M", version, minVersion = 1, mask = -1 } = options;
-  const segments =
-    typeof data === "string" ? makeSegments(data) : [makeByteSegment(data)];
   let v: number;
   if (version !== undefined) {
     assertVersion(version);
     v = version;
   } else {
-    v = chooseVersion(segments, ecLevel, minVersion);
+    v = chooseVersionForSegments(segments, ecLevel, minVersion);
   }
   return buildMatrix(buildCodewords(segments, v, ecLevel), v, ecLevel, mask);
+}
+
+/**
+ * Returns the smallest version (1-40) that can hold the data at the given
+ * error correction level — the version encode() auto-selects. Useful to
+ * check whether (and at what symbol size) data will fit before rendering.
+ *
+ * @throws {RangeError} when data is neither a string nor a Uint8Array, or
+ *                      minVersion is invalid
+ * @throws {Error} when the data does not fit any version at the level
+ */
+export function chooseVersion(
+  data: string | Uint8Array,
+  options: Pick<EncodeOptions, "ecLevel" | "minVersion"> = {},
+): number {
+  const { ecLevel = "M", minVersion = 1 } = options;
+  return chooseVersionForSegments(
+    toSegments(data, "chooseVersion"),
+    ecLevel,
+    minVersion,
+  );
+}
+
+/**
+ * Validates public-API input and builds its segment list.
+ * @param fn public function name used as the error message prefix
+ */
+function toSegments(data: string | Uint8Array, fn: string): Segment[] {
+  if (typeof data !== "string" && !(data instanceof Uint8Array)) {
+    throw new RangeError(`${fn}: data must be a string or Uint8Array`);
+  }
+  // Numeric's 7,089 digits (v40-L) is the largest count any mode can hold,
+  // and UTF-8 never yields fewer bytes than UTF-16 code units, so longer
+  // inputs can never fit any version. Reject before any O(n) segment work.
+  const maxLength = typeof data === "string" ? 7089 : 2953;
+  if (data.length > maxLength) {
+    throw new Error(
+      `${fn}: data too long for any version (${data.length} > ${maxLength})`,
+    );
+  }
+  return typeof data === "string"
+    ? makeSegments(data)
+    : [makeByteSegment(data)];
 }

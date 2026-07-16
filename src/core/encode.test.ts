@@ -1,7 +1,7 @@
 import jsQR from "jsqr";
 import { describe, expect, it } from "vitest";
-import type { ECLevel } from "./capacity";
-import { encode } from "./encode";
+import { EC_LEVELS, type ECLevel } from "./capacity";
+import { chooseVersion, encode } from "./encode";
 import { getModule, type QRMatrix } from "./matrix";
 import { detectMode } from "./segments";
 
@@ -136,6 +136,55 @@ describe("encode → jsQR ラウンドトリップ", () => {
   });
 });
 
+describe("全数掃引: 全40バージョン×全ECレベルのjsQRラウンドトリップ", () => {
+  it.each(Array.from({ length: 40 }, (_, i) => i + 1))(
+    "v%i × L/M/Q/H",
+    (version) => {
+      for (const ecLevel of EC_LEVELS) {
+        const text = `V${version}-${ecLevel}`;
+        const m = encode(text, { version, ecLevel });
+        expect(m.version).toBe(version);
+        expect(m.ecLevel).toBe(ecLevel);
+        // jsQR's version table has a typo in v23's alignment pattern centers
+        // ([6,30,54,74,102] where the spec — and ZXing, qrcode-generator —
+        // says 78, the only value consistent with the equal-step rule). The
+        // resulting misplaced function-pattern mask garbles more codewords
+        // than L's EC budget can absorb (M/Q/H still correct them). A jsQR
+        // copy with the table fixed decodes our v23-L at all 8 masks, so the
+        // encoder side is correct; skip only this decoder-bug combination.
+        if (version === 23 && ecLevel === "L") continue;
+        expect(decode(m).data).toBe(text);
+      }
+    },
+  );
+});
+
+describe("chooseVersion(公開API): データから直接バージョンを返す", () => {
+  it("encode が自動選択するバージョンと一致する(既定はレベルM)", () => {
+    for (const data of ["HI", "1".repeat(200), "x".repeat(100), "こんにちは"]) {
+      expect(chooseVersion(data)).toBe(encode(data).version);
+    }
+    const bytes = new Uint8Array(64);
+    expect(chooseVersion(bytes)).toBe(encode(bytes).version);
+  });
+
+  it("ecLevel / minVersion を尊重する", () => {
+    expect(chooseVersion("x".repeat(17), { ecLevel: "L" })).toBe(1);
+    expect(chooseVersion("x".repeat(17), { ecLevel: "H" })).toBe(3);
+    expect(chooseVersion("HI", { minVersion: 5 })).toBe(5);
+  });
+
+  it("encode と同じ入力検証(型・上限長・不正 minVersion)", () => {
+    expect(() => chooseVersion(123 as unknown as string)).toThrow(
+      /string or Uint8Array/,
+    );
+    expect(() => chooseVersion("8".repeat(7090), { ecLevel: "L" })).toThrow(
+      /too long/,
+    );
+    expect(() => chooseVersion("HI", { minVersion: 0 })).toThrow(RangeError);
+  });
+});
+
 describe("encode: オプション", () => {
   it("minVersion を下回らない", () => {
     expect(encode("HI", { minVersion: 5 }).version).toBe(5);
@@ -156,6 +205,15 @@ describe("encode: オプション", () => {
   it("不正な minVersion は RangeError(「収まらない」エラーにしない)", () => {
     expect(() => encode("X", { minVersion: 41 })).toThrow(RangeError);
     expect(() => encode("X", { minVersion: 0 })).toThrow(RangeError);
+  });
+
+  it("どのバージョンにも収まらない長さは早期に Error で弾く(境界値の直上)", () => {
+    // Strings: 7,089 UTF-16 code units (Numeric at v40-L) is the hard maximum
+    expect(() => encode("8".repeat(7090), { ecLevel: "L" })).toThrow(/too long/);
+    // Uint8Array: 2,953 bytes (Byte at v40-L) is the hard maximum
+    expect(() => encode(new Uint8Array(2954), { ecLevel: "L" })).toThrow(
+      /too long/,
+    );
   });
 
   it("文字列でもUint8Arrayでもない data は RangeError", () => {

@@ -6,7 +6,7 @@ export function meta() {
   return seoMeta({
     title: "API Reference — react-qr-lite",
     description:
-      "Full API reference for react-qr-lite: <QRCode /> props, encode options, QRMatrix, toSvgPath, and the low-level core exports.",
+      "Full API reference for react-qr-lite: <QRCode /> props, encode options, QRMatrix, toSvgPath, and the core helpers.",
     path: "/api/",
   });
 }
@@ -158,21 +158,10 @@ const QRMATRIX_FIELDS: Row[] = [
   },
 ];
 
-const CORE_EXPORTS: { name: string; desc: string }[] = [
-  { name: "getModule(matrix, x, y)", desc: "Reads one module from a QRMatrix as 0 | 1." },
-  { name: "penaltyScore(matrix)", desc: "The 4-rule mask penalty score of a matrix (lower is better)." },
-  { name: "detectMode(text)", desc: 'Returns the mode auto-detection would pick: "numeric" | "alphanumeric" | "kanji" | "byte".' },
-  { name: "makeSegments(text)", desc: "Builds the segment list for a string (currently a single segment in the detected mode)." },
-  { name: "makeNumericSegment / makeAlphanumericSegment / makeByteSegment / makeKanjiSegment", desc: "Construct a segment in a specific mode explicitly." },
-  { name: "chooseVersion(segments, ecLevel, minVersion?)", desc: "The smallest version that can hold the segment list." },
-  { name: "buildCodewords(segments, version, ecLevel)", desc: "The final interleaved codeword sequence (data + Reed-Solomon EC)." },
-  { name: "buildMatrix(codewords, version, ecLevel, mask)", desc: "Places codewords into a module matrix (mask -1 = auto-select)." },
-  { name: "rsEncode(data, ecLength)", desc: "Reed-Solomon error correction codewords for one block." },
-  { name: "getCapacity(version, ecLevel) / totalCodewords(version)", desc: "Capacity and block-structure info per version and EC level." },
-  { name: "formatBits(ecLevel, mask) / versionBits(version) / alignmentPositions(version)", desc: "BCH-encoded format/version info and alignment pattern coordinates." },
-  { name: "kanjiModeAvailable()", desc: "Whether this runtime's TextDecoder supports shift_jis (Kanji mode); when false, encoding falls back to Byte/UTF-8." },
-  { name: "BitBuffer", desc: "Growable MSB-first bit stream used by the encoding pipeline." },
-  { name: "EC_LEVELS", desc: 'The four levels as a readonly array: ["L", "M", "Q", "H"].' },
+const CORE_HELPERS: { name: string; desc: string }[] = [
+  { name: "getModule(matrix, x, y)", desc: "Reads one module from a QRMatrix as 0 | 1. Coordinates are (x, y) = (column, row)." },
+  { name: "detectMode(text)", desc: 'Returns the mode auto-detection would pick for a string: "numeric" | "alphanumeric" | "kanji" | "byte".' },
+  { name: "chooseVersion(data, options?)", desc: "The smallest version (1–40) that can hold the data — what encode() auto-selects. Options: ecLevel (default \"M\") and minVersion. Throws when the data does not fit any version." },
 ];
 
 function PropsTable({ rows, nameHeader = "Prop" }: { rows: Row[]; nameHeader?: string }) {
@@ -234,11 +223,12 @@ export default function ApiReference() {
                   <code className="font-mono font-semibold">react-qr-lite</code>
                 </td>
                 <td>
-                  <code className="font-mono">QRCode</code> component plus the main core API
+                  <code className="font-mono">QRCode</code> component plus the full core API
                   re-exported (<code className="font-mono">encode</code>,{" "}
                   <code className="font-mono">toSvgPath</code>,{" "}
                   <code className="font-mono">getModule</code>,{" "}
-                  <code className="font-mono">penaltyScore</code> and their types).
+                  <code className="font-mono">chooseVersion</code>,{" "}
+                  <code className="font-mono">detectMode</code> and their types).
                 </td>
               </tr>
               <tr>
@@ -333,13 +323,13 @@ export default function ApiReference() {
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-2xl font-bold">Low-level core exports</h2>
+        <h2 className="text-2xl font-bold">Helpers</h2>
         <p className="text-sm">
-          The individual pipeline stages are also exported from{" "}
-          <code className="font-mono">react-qr-lite/core</code> for advanced use — custom segment
-          construction, capacity queries, or research into the encoding itself. Most applications
-          only need <code className="font-mono">encode</code> and{" "}
-          <code className="font-mono">toSvgPath</code>.
+          Three small helpers round out the API. Most applications only need{" "}
+          <code className="font-mono">encode</code> and{" "}
+          <code className="font-mono">toSvgPath</code>. The internal pipeline stages (segment
+          construction, Reed-Solomon, matrix placement) are deliberately not exported — they are
+          implementation details, free to change between releases.
         </p>
         <div className="overflow-x-auto">
           <table className="table table-zebra table-sm">
@@ -350,7 +340,7 @@ export default function ApiReference() {
               </tr>
             </thead>
             <tbody>
-              {CORE_EXPORTS.map((row) => (
+              {CORE_HELPERS.map((row) => (
                 <tr key={row.name}>
                   <td>
                     <code className="font-mono">{row.name}</code>

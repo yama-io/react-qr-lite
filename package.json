@@ -1,6 +1,6 @@
 {
   "name": "react-qr-lite",
-  "version": "0.2.0",
+  "version": "1.0.0",
   "description": "Fast, tiny QR code generator for React (SVG). Zero dependencies.",
   "license": "MIT",
   "author": "yama-io",
@@ -48,10 +48,11 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "CHANGELOG.md"
   ],
   "engines": {
-    "node": ">=16"
+    "node": ">=18"
   },
   "scripts": {
     "build": "tsup",
