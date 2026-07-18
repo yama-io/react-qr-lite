@@ -27,14 +27,14 @@ function divisibleGF2(value: number, poly: number, polyDegree: number): boolean 
 }
 
 describe("formatBits", () => {
-  it("既知ベクトル: (M,0) → 101010000010010、(M,2) → 101111001111100", () => {
+  it("known vectors: (M,0) → 101010000010010, (M,2) → 101111001111100", () => {
     // (M, 0) has data 00000 with BCH remainder 0, so it equals the constant mask 0x5412 itself
     expect(formatBits("M", 0)).toBe(0b101010000010010);
     // (M, 2): data 00010 -> x^11 mod g(x) = 1001101110, then masked with 0x5412
     expect(formatBits("M", 2)).toBe(0b101111001111100);
   });
 
-  it("固定マスクを外すと全32符号語がBCH(15,5)の符号語になる", () => {
+  it("removing the constant mask leaves all 32 words as BCH(15,5) codewords", () => {
     for (const level of EC_LEVELS) {
       for (let mask = 0; mask < 8; mask++) {
         const unmasked = formatBits(level, mask) ^ 0x5412;
@@ -43,7 +43,7 @@ describe("formatBits", () => {
     }
   });
 
-  it("全32符号語のハミング距離が5以上(誤り訂正能力の下限)", () => {
+  it("Hamming distance of all 32 codewords is at least 5 (error correction lower bound)", () => {
     const codes: number[] = [];
     for (const level of EC_LEVELS) {
       for (let mask = 0; mask < 8; mask++) codes.push(formatBits(level, mask));
@@ -59,12 +59,12 @@ describe("formatBits", () => {
 });
 
 describe("versionBits", () => {
-  it("既知ベクトル: v7 → 0x07C94, v8 → 0x085BC", () => {
+  it("known vectors: v7 → 0x07C94, v8 → 0x085BC", () => {
     expect(versionBits(7)).toBe(0x07c94);
     expect(versionBits(8)).toBe(0x085bc);
   });
 
-  it("v7-40すべてで上位6bitがバージョン、全体がBCH(18,6)の符号語", () => {
+  it("for all of v7-40 the top 6 bits are the version and the whole is a BCH(18,6) codeword", () => {
     for (let v = 7; v <= 40; v++) {
       const bits = versionBits(v);
       expect(bits >> 12, `v${v}`).toBe(v);
@@ -83,11 +83,11 @@ describe("alignmentPositions", () => {
     [32, [6, 34, 60, 86, 112, 138]], // the even-split exception version
     [36, [6, 24, 50, 76, 102, 128, 154]],
     [40, [6, 30, 58, 86, 114, 142, 170]],
-  ])("v%i の中心座標が仕様表と一致", (version, expected) => {
+  ])("v%i center coordinates match the spec table", (version, expected) => {
     expect(alignmentPositions(version)).toEqual(expected);
   });
 
-  it("全バージョンで構造が正しい(先頭6・末尾size-7・中間は等間隔の偶数ステップ)", () => {
+  it("structure is correct for every version (first 6, last size-7, equally spaced even steps between)", () => {
     for (let v = 2; v <= 40; v++) {
       const pos = alignmentPositions(v);
       const size = v * 4 + 17;
@@ -97,7 +97,7 @@ describe("alignmentPositions", () => {
       for (let i = 2; i < pos.length; i++) {
         const step = pos[i]! - pos[i - 1]!;
         expect(step % 2, `v${v} step`).toBe(0);
-        if (i >= 3) expect(step, `v${v} 等間隔`).toBe(pos[i - 1]! - pos[i - 2]!);
+        if (i >= 3) expect(step, `v${v} equal step`).toBe(pos[i - 1]! - pos[i - 2]!);
       }
     }
   });
@@ -116,15 +116,15 @@ function buildFor(text: string, version: number, level: ECLevel, mask = -1): QRM
   );
 }
 
-describe("buildMatrix: 構造", () => {
+describe("buildMatrix: structure", () => {
   const m = buildFor("STRUCTURE TEST", 2, "M");
 
-  it("サイズは version*4+17", () => {
+  it("size is version*4+17", () => {
     expect(m.size).toBe(25);
     expect(m.modules.length).toBe(625);
   });
 
-  it("位置検出パターン: 3隅の中心・リング・分離帯", () => {
+  it("finder patterns: centers, rings, and separators in three corners", () => {
     for (const [cx, cy] of [
       [3, 3],
       [m.size - 4, 3],
@@ -143,7 +143,7 @@ describe("buildMatrix: 構造", () => {
     expect(getModule(m, 0, 7)).toBe(0);
   });
 
-  it("タイミングパターンが交互", () => {
+  it("timing patterns alternate", () => {
     for (let i = 8; i < m.size - 8; i++) {
       const expected = (i & 1) === 0 ? 1 : 0;
       expect(getModule(m, i, 6), `x=${i}`).toBe(expected);
@@ -151,7 +151,7 @@ describe("buildMatrix: 構造", () => {
     }
   });
 
-  it("暗モジュール (8, size-8) は常に暗", () => {
+  it("dark module (8, size-8) is always dark", () => {
     for (const level of EC_LEVELS) {
       for (let mask = 0; mask < 8; mask++) {
         const mm = buildFor("DARK", 1, level, mask);
@@ -160,25 +160,25 @@ describe("buildMatrix: 構造", () => {
     }
   });
 
-  it("v2のアライメントパターン(中心18,18)が正しい形", () => {
+  it("v2 alignment pattern (center 18,18) has the correct shape", () => {
     expect(getModule(m, 18, 18)).toBe(1); // center
     expect(getModule(m, 17, 18)).toBe(0); // light ring
     expect(getModule(m, 16, 18)).toBe(1); // outer ring
   });
 
-  it("v7以上ではバージョン情報が2箇所に配置される", () => {
+  it("version info is placed in both locations for v7+", () => {
     const m7 = buildFor("VERSION INFO", 7, "L");
     const bits = versionBits(7);
     for (let i = 0; i < 18; i++) {
       const bit = (bits >> i) & 1;
       const a = m7.size - 11 + (i % 3);
       const b = Math.floor(i / 3);
-      expect(getModule(m7, a, b), `右上 bit${i}`).toBe(bit);
-      expect(getModule(m7, b, a), `左下 bit${i}`).toBe(bit);
+      expect(getModule(m7, a, b), `top-right bit${i}`).toBe(bit);
+      expect(getModule(m7, b, a), `bottom-left bit${i}`).toBe(bit);
     }
   });
 
-  it("フォーマット情報が第1コピー(左上L字)から読み出せる", () => {
+  it("format info reads back from the first copy (top-left L shape)", () => {
     for (let mask = 0; mask < 8; mask++) {
       const mm = buildFor("FMT", 1, "Q", mask);
       const expected = formatBits("Q", mask);
@@ -192,7 +192,7 @@ describe("buildMatrix: 構造", () => {
     }
   });
 
-  it("配置の内部不変条件: 全バージョン×全レベルで例外なく構築でき、残余ビット数が仕様どおり", () => {
+  it("placement invariants: every version × level builds without exceptions and remainder bits match the spec", () => {
     for (let v = 1; v <= 40; v++) {
       // Remainder bits: v1:0, v2-6:7, v7-13:0, v14-20:3, v21-27:4, v28-34:3, v35-40:0
       const expectedRemainder =
@@ -279,18 +279,18 @@ function makeMatrix(size: number, fill: (x: number, y: number) => number): QRMat
 }
 
 describe("penaltyScore", () => {
-  it("全暗5×5 = 178 (N1:30, N2:48, N3:0, N4:100 の手計算)", () => {
+  it("all-dark 5×5 = 178 (hand-computed N1:30, N2:48, N3:0, N4:100)", () => {
     expect(penaltyScore(makeMatrix(5, () => 1))).toBe(178);
   });
 
-  it("市松模様はN1・N2・N3が0でN4のみ", () => {
+  it("checkerboard scores 0 on N1/N2/N3, leaving only N4", () => {
     const size = 21;
     const m = makeMatrix(size, (x, y) => (x + y) & 1);
     // 220 dark of 21x21=441 modules -> 49.88% -> N4=0
     expect(penaltyScore(m)).toBe(0);
   });
 
-  it("N3: 1011101の前後の明4連を検出する(行方向)", () => {
+  it("N3: detects 4 light modules around 1011101 (row direction)", () => {
     // Put 00001011101 in one row; the rest is a checkerboard scoring zero
     const size = 21;
     const m = makeMatrix(size, (x, y) => (x + y) & 1);
@@ -302,7 +302,7 @@ describe("penaltyScore", () => {
     expect(penaltyScore(m)).toBeGreaterThanOrEqual(40);
   });
 
-  it("実際に符号化した行列×全8マスクで参照実装と完全一致する", () => {
+  it("matches the reference implementation exactly on encoded matrices × all 8 masks", () => {
     const cases: [string, number, ECLevel][] = [
       ["0123456789", 1, "M"],
       ["PENALTY REFERENCE CHECK", 3, "Q"],
@@ -320,8 +320,8 @@ describe("penaltyScore", () => {
   });
 });
 
-describe("マスク自動選択", () => {
-  it("選ばれたマスクのペナルティが8候補の最小である", () => {
+describe("automatic mask selection", () => {
+  it("the chosen mask has the lowest penalty of the 8 candidates", () => {
     for (const text of ["AUTO MASK", "1234567890123", "https://example.com/q?a=1"]) {
       const auto = buildFor(text, 3, "M");
       const scores = Array.from({ length: 8 }, (_, mask) =>
@@ -332,25 +332,25 @@ describe("マスク自動選択", () => {
     }
   });
 
-  it("マスク固定時はそのマスクが使われる", () => {
+  it("a pinned mask is used as-is", () => {
     for (let mask = 0; mask < 8; mask++) {
       expect(buildFor("FIX", 1, "M", mask).mask).toBe(mask);
     }
   });
 
-  it("不正なマスク番号は RangeError", () => {
+  it("invalid mask numbers are RangeError", () => {
     const cw = buildCodewords(makeSegments("X"), 1, "M");
     expect(() => buildMatrix(cw, 1, "M", 8)).toThrow(RangeError);
     expect(() => buildMatrix(cw, 1, "M", -2)).toThrow(RangeError);
   });
 
-  it("コードワード数が合わないと RangeError", () => {
+  it("mismatched codeword counts are RangeError", () => {
     expect(() => buildMatrix(new Uint8Array(25), 1, "M")).toThrow(RangeError);
   });
 });
 
-describe("マスク適用の整合性", () => {
-  it("同一データでもマスクが違えばデータ領域が異なり、機能パターンは同一", () => {
+describe("mask application consistency", () => {
+  it("different masks change the data region but keep the function patterns identical", () => {
     const a = buildFor("MASK DIFF", 2, "M", 0);
     const b = buildFor("MASK DIFF", 2, "M", 1);
     // Timing and finder patterns are unchanged

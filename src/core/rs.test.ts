@@ -62,28 +62,28 @@ function makeRng(seed: number): () => number {
 
 /* ------------------------------------------------------------------ */
 
-describe("rsEncode: 手計算で検証できるケース", () => {
-  it("degree 1 の剰余は全データバイトのXOR(g(x) = x + 1, 剰余 = d(1))", () => {
+describe("rsEncode: hand-verifiable cases", () => {
+  it("degree-1 remainder is the XOR of all data bytes (g(x) = x + 1, remainder = d(1))", () => {
     const data = new Uint8Array([0x12, 0x34, 0x56, 0xff, 0x01]);
     const xorAll = 0x12 ^ 0x34 ^ 0x56 ^ 0xff ^ 0x01;
     expect(Array.from(rsEncode(data, 1))).toEqual([xorAll]);
   });
 
-  it("空データの剰余はゼロ", () => {
+  it("remainder of empty data is zero", () => {
     expect(Array.from(rsEncode(new Uint8Array(0), 10))).toEqual(
       new Array(10).fill(0),
     );
   });
 
-  it("ゼロのみのデータの剰余はゼロ", () => {
+  it("remainder of all-zero data is zero", () => {
     expect(Array.from(rsEncode(new Uint8Array(16), 10))).toEqual(
       new Array(10).fill(0),
     );
   });
 });
 
-describe("rsEncode: 参照実装との一致", () => {
-  it("QRで実際に使う次数(7,10,13,15,16,17,18,20,22,24,26,28,30)でランダムデータが一致する", () => {
+describe("rsEncode: agreement with the reference implementation", () => {
+  it("random data matches at every degree QR actually uses (7,10,13,15,16,17,18,20,22,24,26,28,30)", () => {
     const degrees = [7, 10, 13, 15, 16, 17, 18, 20, 22, 24, 26, 28, 30];
     const rng = makeRng(0xc0ffee);
     for (const degree of degrees) {
@@ -98,8 +98,8 @@ describe("rsEncode: 参照実装との一致", () => {
   });
 });
 
-describe("rsEncode: Reed-Solomon符号の性質", () => {
-  it("送信多項式 d(x)·x^k + r(x) は α^0..α^(k-1) を根に持つ", () => {
+describe("rsEncode: Reed-Solomon code properties", () => {
+  it("the transmitted polynomial d(x)·x^k + r(x) has roots α^0..α^(k-1)", () => {
     const rng = makeRng(0xdeadbeef);
     for (const degree of [7, 10, 30]) {
       const data = new Uint8Array(40);
@@ -122,15 +122,15 @@ describe("rsEncode: Reed-Solomon符号の性質", () => {
     }
   });
 
-  it("結果は常に ecLength バイト", () => {
+  it("the result is always ecLength bytes", () => {
     for (const degree of [1, 7, 30, 68]) {
       expect(rsEncode(new Uint8Array([1, 2, 3]), degree).length).toBe(degree);
     }
   });
 });
 
-describe("rsEncode: エラー処理", () => {
-  it("ecLength が 0 以下や非整数なら RangeError", () => {
+describe("rsEncode: error handling", () => {
+  it("ecLength of zero or less, or a non-integer, is RangeError", () => {
     const data = new Uint8Array([1]);
     expect(() => rsEncode(data, 0)).toThrow(RangeError);
     expect(() => rsEncode(data, -1)).toThrow(RangeError);

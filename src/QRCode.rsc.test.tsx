@@ -39,7 +39,7 @@ async function renderToFlightPayload(
 }
 
 describe("<QRCode /> as a React Server Component", () => {
-  it("react-server条件で解決されている(クライアント専用フックのないサブセット)", () => {
+  it("resolved under the react-server condition (the subset without client-only hooks)", () => {
     // Guard: if the condition were not active this suite would silently
     // test the client build again
     expect((React as { useState?: unknown }).useState).toBeUndefined();
@@ -48,7 +48,7 @@ describe("<QRCode /> as a React Server Component", () => {
     expect(React.forwardRef).toBeTypeOf("function");
   });
 
-  it("Server ComponentとしてFlightレンダリングでき、コアと同一のd属性がペイロードに現れる", async () => {
+  it("renders via Flight as a Server Component, with the same d attribute as the core in the payload", async () => {
     const { payload, errors } = await renderToFlightPayload(
       <QRCode value="RSC SMOKE" title="server rendered" />,
     );
@@ -61,7 +61,7 @@ describe("<QRCode /> as a React Server Component", () => {
     expect(payload).toContain("server rendered");
   });
 
-  it("符号化オプション(allowKanji含む)もServer Componentで機能する", async () => {
+  it("encoding options (including allowKanji) also work in a Server Component", async () => {
     const { payload, errors } = await renderToFlightPayload(
       <QRCode value="漢字" ecLevel="H" allowKanji={false} />,
     );

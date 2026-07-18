@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { BitBuffer } from "./bitbuffer";
 
-describe("BitBuffer: 基本の書き込み", () => {
-  it("QRのByteモード先頭を模したパターン: put(0b0100,4) + put(11,8)", () => {
+describe("BitBuffer: basic writes", () => {
+  it("pattern mimicking a QR byte-mode header: put(0b0100,4) + put(11,8)", () => {
     const buf = new BitBuffer();
     buf.put(0b0100, 4); // mode indicator (Byte)
     buf.put(11, 8); // character count indicator
@@ -12,7 +12,7 @@ describe("BitBuffer: 基本の書き込み", () => {
     expect(Array.from(buf.toUint8Array())).toEqual([0b01000000, 0b10110000]);
   });
 
-  it("putBit の連続とビット順(MSBファースト)", () => {
+  it("consecutive putBit calls and bit order (MSB first)", () => {
     const buf = new BitBuffer();
     // 10110001, one bit at a time
     for (const b of [1, 0, 1, 1, 0, 0, 0, 1] as const) buf.putBit(b);
@@ -22,14 +22,14 @@ describe("BitBuffer: 基本の書き込み", () => {
     expect(buf.getBit(7)).toBe(1);
   });
 
-  it("put(value, 0) は何もしない", () => {
+  it("put(value, 0) is a no-op", () => {
     const buf = new BitBuffer();
     buf.put(0, 0);
     expect(buf.length).toBe(0);
     expect(buf.toUint8Array().length).toBe(0);
   });
 
-  it("バイト境界をまたぐ書き込み(13bit値など)", () => {
+  it("writes across byte boundaries (e.g. 13-bit values)", () => {
     const buf = new BitBuffer();
     buf.put(0b101, 3);
     buf.put(0b1111000011111, 13); // kanji-mode payload width
@@ -37,7 +37,7 @@ describe("BitBuffer: 基本の書き込み", () => {
     expect(Array.from(buf.toUint8Array())).toEqual([0b10111110, 0b00011111]);
   });
 
-  it("30bit(上限)の書き込み", () => {
+  it("writing 30 bits (the upper limit)", () => {
     const buf = new BitBuffer();
     const v = (1 << 30) - 1;
     buf.put(v, 30);
@@ -49,7 +49,7 @@ describe("BitBuffer: 基本の書き込み", () => {
 });
 
 describe("BitBuffer: putBytes", () => {
-  it("バイト境界に揃っている場合の一括コピー", () => {
+  it("bulk copy when byte-aligned", () => {
     const buf = new BitBuffer();
     buf.put(0xab, 8);
     buf.putBytes(new Uint8Array([0x01, 0x02, 0x03]));
@@ -57,7 +57,7 @@ describe("BitBuffer: putBytes", () => {
     expect(Array.from(buf.toUint8Array())).toEqual([0xab, 0x01, 0x02, 0x03]);
   });
 
-  it("境界に揃っていない場合も正しい(ビットずれ書き込み)", () => {
+  it("correct when unaligned (bit-shifted writes)", () => {
     const buf = new BitBuffer();
     buf.put(0b1, 1);
     buf.putBytes(new Uint8Array([0xff, 0x00]));
@@ -67,8 +67,8 @@ describe("BitBuffer: putBytes", () => {
   });
 });
 
-describe("BitBuffer: 容量拡張", () => {
-  it("初期容量を超えても正しく保持する", () => {
+describe("BitBuffer: capacity growth", () => {
+  it("holds data correctly beyond the initial capacity", () => {
     const buf = new BitBuffer(1); // start from a single byte
     const values: number[] = [];
     for (let i = 0; i < 500; i++) {
@@ -80,7 +80,7 @@ describe("BitBuffer: 容量拡張", () => {
     expect(Array.from(buf.toUint8Array())).toEqual(values);
   });
 
-  it("拡張後の末尾未使用ビットは0", () => {
+  it("unused trailing bits are 0 after growth", () => {
     const buf = new BitBuffer(1);
     for (let i = 0; i < 100; i++) buf.put(1, 3); // 300bit
     const bytes = buf.toUint8Array();
@@ -90,20 +90,20 @@ describe("BitBuffer: 容量拡張", () => {
   });
 });
 
-describe("BitBuffer: エラー処理", () => {
-  it("numBits が範囲外なら RangeError", () => {
+describe("BitBuffer: error handling", () => {
+  it("out-of-range numBits is RangeError", () => {
     const buf = new BitBuffer();
     expect(() => buf.put(0, -1)).toThrow(RangeError);
     expect(() => buf.put(0, 31)).toThrow(RangeError);
   });
 
-  it("value が numBits に収まらなければ RangeError", () => {
+  it("value not fitting in numBits is RangeError", () => {
     const buf = new BitBuffer();
     expect(() => buf.put(16, 4)).toThrow(RangeError);
     expect(() => buf.put(-1, 8)).toThrow(RangeError);
   });
 
-  it("getBit の範囲外アクセスは RangeError", () => {
+  it("out-of-range getBit access is RangeError", () => {
     const buf = new BitBuffer();
     buf.put(0xff, 8);
     expect(() => buf.getBit(-1)).toThrow(RangeError);

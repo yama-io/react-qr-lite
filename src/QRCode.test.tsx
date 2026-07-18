@@ -5,14 +5,14 @@ import { encode } from "./core/encode";
 import { toSvgPath } from "./core/svgpath";
 
 describe("<QRCode />", () => {
-  it("単一の<path>にコアと同一のd属性が入る", () => {
+  it("a single <path> carries the same d attribute as the core", () => {
     const html = renderToStaticMarkup(<QRCode value="COMPONENT TEST" />);
     const expected = toSvgPath(encode("COMPONENT TEST", { ecLevel: "M" }));
     expect(html.match(/<path /g)).toHaveLength(1);
     expect(html).toContain(`d="${expected}"`);
   });
 
-  it("既定: 128px、quiet zone 4、白背景・黒前景、role=img", () => {
+  it("defaults: 128px, quiet zone 4, white background, black foreground, role=img", () => {
     const html = renderToStaticMarkup(<QRCode value="DEFAULTS" />);
     // v1 (21) + 4×2 = 29
     expect(html).toContain('viewBox="-4 -4 29 29"');
@@ -24,7 +24,7 @@ describe("<QRCode />", () => {
     expect(html).toContain('shape-rendering="crispEdges"');
   });
 
-  it("符号化オプション(ecLevel / version / mask)が反映される", () => {
+  it("encoding options (ecLevel / version / mask) are applied", () => {
     const html = renderToStaticMarkup(
       <QRCode value="OPTS" ecLevel="H" version={5} mask={3} />,
     );
@@ -34,13 +34,13 @@ describe("<QRCode />", () => {
     expect(html).toContain('viewBox="-4 -4 45 45"');
   });
 
-  it("margin=0でviewBoxが行列サイズちょうどになる", () => {
+  it("margin=0 makes the viewBox exactly the matrix size", () => {
     const html = renderToStaticMarkup(<QRCode value="M0" margin={0} />);
     expect(html).toContain('viewBox="0 0 21 21"');
     expect(html).toContain('x="0" y="0" width="21" height="21"');
   });
 
-  it("色・サイズ・titleのカスタマイズ", () => {
+  it("customizing colors, size, and title", () => {
     const html = renderToStaticMarkup(
       <QRCode
         value="CUSTOM"
@@ -56,7 +56,7 @@ describe("<QRCode />", () => {
     expect(html).toContain("<title>サイトへのリンク</title>");
   });
 
-  it("残りのpropsは<svg>に渡り、既定値を上書きできる", () => {
+  it("remaining props are spread onto the <svg> and can override defaults", () => {
     const html = renderToStaticMarkup(
       <QRCode value="SPREAD" className="qr" aria-label="QR" role="presentation" />,
     );
@@ -66,26 +66,26 @@ describe("<QRCode />", () => {
     expect(html).not.toContain('role="img"');
   });
 
-  it("allowKanji={false} はByteモードで符号化する(既定はKanjiモード)", () => {
+  it("allowKanji={false} encodes in byte mode (kanji mode by default)", () => {
     const html = renderToStaticMarkup(<QRCode value="漢字" allowKanji={false} />);
     const byte = toSvgPath(encode("漢字", { ecLevel: "M", allowKanji: false }));
     expect(html).toContain(`d="${byte}"`);
     expect(byte).not.toBe(toSvgPath(encode("漢字", { ecLevel: "M" })));
   });
 
-  it("Uint8Array入力もエンコードできる", () => {
+  it("Uint8Array input also encodes", () => {
     const bytes = new Uint8Array([1, 2, 3, 250]);
     const html = renderToStaticMarkup(<QRCode value={bytes} />);
     expect(html).toContain(`d="${toSvgPath(encode(bytes, { ecLevel: "M" }))}"`);
   });
 
-  it("符号化できない入力は例外を投げる(Error Boundaryで捕捉可能)", () => {
+  it("unencodable input throws (catchable by an Error Boundary)", () => {
     expect(() =>
       renderToStaticMarkup(<QRCode value={"x".repeat(50)} version={1} />),
     ).toThrow(/exceeds/);
   });
 
-  it("負・非有限の margin は RangeError", () => {
+  it("negative or non-finite margin is RangeError", () => {
     expect(() =>
       renderToStaticMarkup(<QRCode value="M" margin={-1} />),
     ).toThrow(RangeError);

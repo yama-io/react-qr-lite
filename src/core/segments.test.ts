@@ -26,31 +26,31 @@ const bin = (value: number, width: number) =>
   value.toString(2).padStart(width, "0");
 
 describe("detectMode", () => {
-  it("数字のみ → numeric", () => {
+  it("digits only → numeric", () => {
     expect(detectMode("0123456789")).toBe("numeric");
     expect(detectMode("0")).toBe("numeric");
   });
 
-  it("英数字集合内 → alphanumeric", () => {
+  it("within the alphanumeric charset → alphanumeric", () => {
     expect(detectMode("HELLO WORLD")).toBe("alphanumeric");
     expect(detectMode("AC-42")).toBe("alphanumeric");
     expect(detectMode("A1 $%*+-./:")).toBe("alphanumeric");
   });
 
-  it("小文字・記号・非ASCII → byte", () => {
+  it("lowercase, symbols, non-ASCII → byte", () => {
     expect(detectMode("hello")).toBe("byte");
     expect(detectMode("HTTPS://例")).toBe("byte");
     expect(detectMode("A_B")).toBe("byte");
     expect(detectMode("ABC,")).toBe("byte");
   });
 
-  it("空文字列 → numeric(最小の表現)", () => {
+  it("empty string → numeric (the smallest representation)", () => {
     expect(detectMode("")).toBe("numeric");
   });
 });
 
-describe("ccBits: 文字数指示子の幅", () => {
-  it("バージョン帯ごとの幅が仕様どおり", () => {
+describe("ccBits: character count indicator widths", () => {
+  it("widths per version band match the spec", () => {
     expect(ccBits("numeric", 1)).toBe(10);
     expect(ccBits("numeric", 9)).toBe(10);
     expect(ccBits("numeric", 10)).toBe(12);
@@ -66,7 +66,7 @@ describe("ccBits: 文字数指示子の幅", () => {
 });
 
 describe("makeNumericSegment", () => {
-  it('ISO/IEC 18004の符号化例 "01234567" と一致する', () => {
+  it('matches the ISO/IEC 18004 worked example "01234567"', () => {
     // 012 → 12, 345 → 345, 67 → 67
     const expected =
       bin(0b0001, 4) + // mode indicator
@@ -80,7 +80,7 @@ describe("makeNumericSegment", () => {
     expect(segmentBits(seg, 1)).toBe(41);
   });
 
-  it("余り1桁は4bit", () => {
+  it("a 1-digit remainder takes 4 bits", () => {
     const seg = makeNumericSegment("1234");
     // 123 → 10bit, 4 → 4bit
     expect(seg.dataBits).toBe(14);
@@ -89,13 +89,13 @@ describe("makeNumericSegment", () => {
     );
   });
 
-  it("非数字を含むとエラー", () => {
+  it("throws on non-digit characters", () => {
     expect(() => makeNumericSegment("12a")).toThrow(/non-digit/);
   });
 });
 
 describe("makeAlphanumericSegment", () => {
-  it('"AC-42" が既知のペア値(462, 1849)どおりに符号化される', () => {
+  it('"AC-42" encodes to the known pair values (462, 1849)', () => {
     // A=10, C=12 → 10·45+12 = 462 / -=41, 4=4 → 41·45+4 = 1849 / 2 → 2
     const expected =
       bin(0b0010, 4) +
@@ -108,13 +108,13 @@ describe("makeAlphanumericSegment", () => {
     expect(seg.dataBits).toBe(28);
   });
 
-  it("集合外の文字(小文字)はエラー", () => {
+  it("throws on characters outside the charset (lowercase)", () => {
     expect(() => makeAlphanumericSegment("Ab")).toThrow(/invalid character/);
   });
 });
 
 describe("makeByteSegment", () => {
-  it("ASCII文字列は1文字1バイト", () => {
+  it("ASCII strings are one byte per character", () => {
     const seg = makeByteSegment("abc");
     expect(seg.numChars).toBe(3);
     expect(seg.dataBits).toBe(24);
@@ -123,7 +123,7 @@ describe("makeByteSegment", () => {
     );
   });
 
-  it("文字数指示子はUTF-8のバイト数(日本語は1文字3バイト)", () => {
+  it("count indicator holds the UTF-8 byte count (3 bytes per Japanese character)", () => {
     const seg = makeByteSegment("あ"); // U+3042 → E3 81 82
     expect(seg.numChars).toBe(3);
     expect(toBitString(seg, 1)).toBe(
@@ -131,13 +131,13 @@ describe("makeByteSegment", () => {
     );
   });
 
-  it("Uint8Arrayをそのまま受け取れる", () => {
+  it("accepts a Uint8Array as-is", () => {
     const seg = makeByteSegment(new Uint8Array([0xff, 0x00]));
     expect(seg.numChars).toBe(2);
   });
 });
 
-describe("makeSegments: 自動モード選択", () => {
+describe("makeSegments: automatic mode selection", () => {
   it.each([
     ["0123456789", "numeric"],
     ["HELLO WORLD", "alphanumeric"],
@@ -149,8 +149,8 @@ describe("makeSegments: 自動モード選択", () => {
   });
 });
 
-describe("writeSegment / segmentBits: 文字数指示子の上限", () => {
-  it("v1-9のByteモード(8bit指示子)に256バイトは書けない", () => {
+describe("writeSegment / segmentBits: count indicator limits", () => {
+  it("256 bytes do not fit the 8-bit byte-mode indicator of v1-9", () => {
     const seg = makeByteSegment(new Uint8Array(256));
     expect(segmentBits(seg, 9)).toBe(Infinity);
     expect(() => toBitString(seg, 9)).toThrow(RangeError);
@@ -160,7 +160,7 @@ describe("writeSegment / segmentBits: 文字数指示子の上限", () => {
 });
 
 describe("makeKanjiSegment", () => {
-  it('ISO/IEC 18004の符号化例 "点茗" と一致する', () => {
+  it('matches the ISO/IEC 18004 worked example "点茗"', () => {
     // 0x935F -> -0x8140 = 0x121F -> 0x12*0xC0+0x1F = 0x0D9F
     // 0xE4AA -> -0xC140 = 0x236A -> 0x23*0xC0+0x6A = 0x1AAA
     const expected =
@@ -174,12 +174,12 @@ describe("makeKanjiSegment", () => {
     expect(seg.numChars).toBe(2);
   });
 
-  it("Kanjiモードで表せない文字はエラー", () => {
+  it("throws on characters not representable in kanji mode", () => {
     expect(() => makeKanjiSegment("あA")).toThrow(/not encodable/);
     expect(() => makeKanjiSegment("ｱ")).toThrow(/not encodable/); // half-width katakana
   });
 
-  it("同じ日本語文字列でByteモードより短い(13bit/文字 vs 24bit/文字)", () => {
+  it("shorter than byte mode for the same Japanese string (13 vs 24 bits per char)", () => {
     const text = "こんにちは世界";
     const kanji = makeKanjiSegment(text);
     const byte = makeByteSegment(text);
@@ -190,32 +190,32 @@ describe("makeKanjiSegment", () => {
 });
 
 describe("detectMode: Kanji", () => {
-  it("全角のみの文字列 → kanji", () => {
+  it("all-double-byte strings → kanji", () => {
     expect(detectMode("こんにちは")).toBe("kanji");
     expect(detectMode("漢字、カタカナ。全角Ａも")).toBe("kanji");
   });
 
-  it("ASCII混在・絵文字・半角カナ → byte", () => {
+  it("mixed ASCII, emoji, half-width kana → byte", () => {
     expect(detectMode("こんにちはA")).toBe("byte");
     expect(detectMode("こんにちは123")).toBe("byte");
     expect(detectMode("絵文字🎌入り")).toBe("byte");
     expect(detectMode("ﾊﾝｶｸｶﾅ")).toBe("byte");
   });
 
-  it("allowKanji: false ではKanjiを検出せずbyteになる(他モードは不変)", () => {
+  it("allowKanji: false skips kanji detection and yields byte (other modes unchanged)", () => {
     expect(detectMode("こんにちは", { allowKanji: false })).toBe("byte");
     expect(detectMode("0123", { allowKanji: false })).toBe("numeric");
     expect(detectMode("HELLO", { allowKanji: false })).toBe("alphanumeric");
   });
 
-  it("makeSegments も allowKanji を尊重する", () => {
+  it("makeSegments also respects allowKanji", () => {
     expect(makeSegments("漢字")[0]!.mode).toBe("kanji");
     expect(makeSegments("漢字", { allowKanji: false })[0]!.mode).toBe("byte");
   });
 });
 
-describe("ccBits: Kanjiモードの文字数指示子", () => {
-  it("バージョン帯ごとの幅が仕様どおり", () => {
+describe("ccBits: kanji-mode character count indicator", () => {
+  it("widths per version band match the spec", () => {
     expect(ccBits("kanji", 1)).toBe(8);
     expect(ccBits("kanji", 9)).toBe(8);
     expect(ccBits("kanji", 10)).toBe(10);

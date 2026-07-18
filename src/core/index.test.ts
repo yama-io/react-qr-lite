@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import * as core from "./index";
 
-describe("公開APIサーフェス", () => {
-  it("意図したエクスポートのみを公開する(内部実装を漏らさない)", () => {
+describe("public API surface", () => {
+  it("exposes only the intended exports (no internal leaks)", () => {
     expect(Object.keys(core).sort()).toEqual([
       "chooseVersion",
       "detectMode",

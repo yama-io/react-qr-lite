@@ -12,7 +12,7 @@ function makeMatrix(size: number, rows: string[]): QRMatrix {
 }
 
 describe("toSvgPath", () => {
-  it("小さな既知パターンのランレングスが正しい", () => {
+  it("run lengths are correct for a small known pattern", () => {
     const m = makeMatrix(3, [
       "101", //
       "111",
@@ -21,11 +21,11 @@ describe("toSvgPath", () => {
     expect(toSvgPath(m)).toBe("M0 0h1v1h-1zM2 0h1v1h-1zM0 1h3v1h-3z");
   });
 
-  it("全明なら空文字列", () => {
+  it("all-light matrix yields an empty string", () => {
     expect(toSvgPath(makeMatrix(2, ["00", "00"]))).toBe("");
   });
 
-  it("実際のQRをパスから逆構築すると元の行列と一致する(可逆性)", () => {
+  it("rebuilding a real QR from the path reproduces the original matrix (invertibility)", () => {
     for (const [text, opts] of [
       ["INVERSE PARSE", {}],
       ["https://example.com/x?y=1", { ecLevel: "H" as const }],
@@ -45,12 +45,12 @@ describe("toSvgPath", () => {
         for (let i = 0; i < w; i++) rebuilt[y * matrix.size + x + i] = 1;
         matchedLen += 8 + xs!.length + ys!.length + ws!.length + wb!.length;
       }
-      expect(matchedLen, "dの全体がパターンの繰り返しで構成される").toBe(d.length);
+      expect(matchedLen, "the whole d string consists of repeated subpath patterns").toBe(d.length);
       expect(rebuilt).toEqual(matrix.modules);
     }
   });
 
-  it("ランは併合されている(隣接する暗モジュールが別サブパスにならない)", () => {
+  it("runs are merged (adjacent dark modules do not become separate subpaths)", () => {
     // On a real QR containing a timing row (alternating) and finder top edges
     // (runs of 7), confirm subpath count < dark module count
     const matrix = encode("RUN LENGTH");

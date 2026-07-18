@@ -9,66 +9,66 @@ import {
 import { rsEncode } from "./rs";
 import { makeByteSegment, makeSegments } from "./segments";
 
-describe("chooseVersion: 容量境界(既知の最大文字数)", () => {
-  it("Byteモード: 17文字はv1-L、18文字はv2", () => {
+describe("chooseVersion: capacity boundaries (known maximum character counts)", () => {
+  it("byte mode: 17 chars fit v1-L, 18 need v2", () => {
     expect(chooseVersion(makeSegments("x".repeat(17)), "L")).toBe(1);
     expect(chooseVersion(makeSegments("x".repeat(18)), "L")).toBe(2);
   });
 
-  it("Numericモード: 41桁はv1-L、42桁はv2", () => {
+  it("numeric mode: 41 digits fit v1-L, 42 need v2", () => {
     expect(chooseVersion(makeSegments("1".repeat(41)), "L")).toBe(1);
     expect(chooseVersion(makeSegments("1".repeat(42)), "L")).toBe(2);
   });
 
-  it("Alphanumericモード: 25文字はv1-L、26文字はv2", () => {
+  it("alphanumeric mode: 25 chars fit v1-L, 26 need v2", () => {
     expect(chooseVersion(makeSegments("A".repeat(25)), "L")).toBe(1);
     expect(chooseVersion(makeSegments("A".repeat(26)), "L")).toBe(2);
   });
 
-  it("Numeric 7089桁はv40-Lにちょうど収まり、7090桁は収まらない(仕様上の最大値)", () => {
+  it("numeric 7089 digits exactly fit v40-L and 7090 do not (the spec maximum)", () => {
     expect(chooseVersion(makeSegments("1".repeat(7089)), "L")).toBe(40);
     expect(() => chooseVersion(makeSegments("1".repeat(7090)), "L")).toThrow(
       /too long/,
     );
   });
 
-  it("Byte 2953バイトはv40-Lの最大値", () => {
+  it("byte 2953 bytes is the v40-L maximum", () => {
     expect(chooseVersion(makeSegments("x".repeat(2953)), "L")).toBe(40);
     expect(() => chooseVersion(makeSegments("x".repeat(2954)), "L")).toThrow();
   });
 
-  it("Alphanumeric 4296文字はv40-Lの最大値", () => {
+  it("alphanumeric 4296 chars is the v40-L maximum", () => {
     expect(chooseVersion(makeSegments("A".repeat(4296)), "L")).toBe(40);
     expect(() => chooseVersion(makeSegments("A".repeat(4297)), "L")).toThrow();
   });
 
-  it("Kanjiモード: 10文字はv1-L、11文字はv2 / 1817文字はv40-Lの最大値", () => {
+  it("kanji mode: 10 chars fit v1-L, 11 need v2 / 1817 is the v40-L maximum", () => {
     expect(chooseVersion(makeSegments("字".repeat(10)), "L")).toBe(1);
     expect(chooseVersion(makeSegments("字".repeat(11)), "L")).toBe(2);
     expect(chooseVersion(makeSegments("字".repeat(1817)), "L")).toBe(40);
     expect(() => chooseVersion(makeSegments("字".repeat(1818)), "L")).toThrow();
   });
 
-  it("minVersion 以上から探索する", () => {
+  it("searches from minVersion upward", () => {
     expect(chooseVersion(makeSegments("HI"), "L", 5)).toBe(5);
   });
 
-  it("不正な minVersion (0, 41, 非整数) は RangeError", () => {
+  it("invalid minVersion (0, 41, non-integer) is RangeError", () => {
     const segs = makeSegments("HI");
     expect(() => chooseVersion(segs, "L", 0)).toThrow(RangeError);
     expect(() => chooseVersion(segs, "L", 41)).toThrow(RangeError);
     expect(() => chooseVersion(segs, "L", 2.5)).toThrow(RangeError);
   });
 
-  it("同じデータでもレベルが高いほど大きいバージョンになり得る", () => {
+  it("higher levels can require a larger version for the same data", () => {
     const segs = makeSegments("x".repeat(17));
     expect(chooseVersion(segs, "L")).toBe(1);
     expect(chooseVersion(segs, "H")).toBe(3); // 1-H=7B, 2-H=14B, 3-H=26B
   });
 });
 
-describe("buildDataCodewords: ISO/IEC 18004の符号化例", () => {
-  it('"01234567" 1-M のデータコードワードが規格の例示値と一致する', () => {
+describe("buildDataCodewords: ISO/IEC 18004 worked example", () => {
+  it('"01234567" at 1-M matches the spec example data codewords', () => {
     const cap = getCapacity(1, "M");
     const data = buildDataCodewords(makeSegments("01234567"), cap);
     // The spec's worked example: after terminator + bit padding, pads 0xEC/0x11 alternate
@@ -78,7 +78,7 @@ describe("buildDataCodewords: ISO/IEC 18004の符号化例", () => {
     ]);
   });
 
-  it("容量ちょうどのデータには終端子・パディングが入らない", () => {
+  it("data at exact capacity gets no pad codewords", () => {
     // 1-L: 19 bytes = 152 bits. Byte, 17 chars -> 4+8+136 = 148 bits + 4-bit terminator = 152 bits
     const cap = getCapacity(1, "L");
     const data = buildDataCodewords(makeSegments("x".repeat(17)), cap);
@@ -87,7 +87,7 @@ describe("buildDataCodewords: ISO/IEC 18004の符号化例", () => {
     expect(data[18]).toBe(0x80); // After the last char: ...1000 0000 (length consistency is the main point here)
   });
 
-  it("容量超過はエラー", () => {
+  it("exceeding capacity throws", () => {
     const cap = getCapacity(1, "H"); // 9 bytes
     expect(() =>
       buildDataCodewords([makeByteSegment("x".repeat(10))], cap),
@@ -95,8 +95,8 @@ describe("buildDataCodewords: ISO/IEC 18004の符号化例", () => {
   });
 });
 
-describe("assembleCodewords: ブロック分割とインターリーブ", () => {
-  it("単一ブロック(1-M)はデータ + EC の単純連結", () => {
+describe("assembleCodewords: block splitting and interleaving", () => {
+  it("a single block (1-M) is a plain concatenation of data + EC", () => {
     const cap = getCapacity(1, "M");
     const data = new Uint8Array(16).map((_, i) => i + 1);
     const out = assembleCodewords(data, cap);
@@ -107,7 +107,7 @@ describe("assembleCodewords: ブロック分割とインターリーブ", () => 
     );
   });
 
-  it("5-Q(15,15,16,16バイトの4ブロック)のインターリーブ順が仕様どおり", () => {
+  it("5-Q interleave order (4 blocks of 15,15,16,16 bytes) matches the spec", () => {
     const cap = getCapacity(5, "Q");
     // Sequential data makes block boundaries and interleave order traceable
     const data = new Uint8Array(62).map((_, i) => i);
@@ -141,7 +141,7 @@ describe("assembleCodewords: ブロック分割とインターリーブ", () => 
     expect(Array.from(out.subarray(62))).toEqual(expectedEc);
   });
 
-  it("データ長が合わないと RangeError", () => {
+  it("mismatched data lengths are RangeError", () => {
     const cap = getCapacity(5, "Q");
     expect(() => assembleCodewords(new Uint8Array(61), cap)).toThrow(
       RangeError,
@@ -149,8 +149,8 @@ describe("assembleCodewords: ブロック分割とインターリーブ", () => 
   });
 });
 
-describe("buildCodewords: エンドツーエンド", () => {
-  it("出力長は常に総コードワード数と一致する(全レベル×代表バージョン)", () => {
+describe("buildCodewords: end to end", () => {
+  it("output length always equals the total codeword count (all levels × representative versions)", () => {
     for (const version of [1, 2, 5, 7, 10, 20, 40] as const) {
       for (const level of ["L", "M", "Q", "H"] as const) {
         const cap = getCapacity(version, level);
@@ -162,7 +162,7 @@ describe("buildCodewords: エンドツーエンド", () => {
     }
   });
 
-  it('ISO例 "01234567" 1-M の完全なコードワード列(データ16 + EC10)', () => {
+  it('complete codeword sequence of the ISO example "01234567" at 1-M (16 data + 10 EC)', () => {
     const out = buildCodewords(makeSegments("01234567"), 1, "M");
     const expectedData = [
       0x10, 0x20, 0x0c, 0x56, 0x61, 0x80, 0xec, 0x11, 0xec, 0x11, 0xec, 0x11,
