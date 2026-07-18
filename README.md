@@ -2,7 +2,7 @@
 
 Fast, tiny QR code generator for React, rendered as SVG. Zero dependencies.
 
-The encoder is a from-scratch implementation of ISO/IEC 18004 — no wrapper around an existing library. The framework-agnostic core is 4.48 KB (minified + brotli) and can be used without React.
+The encoder is a from-scratch implementation of ISO/IEC 18004 — no wrapper around an existing library. The framework-agnostic core is 4.5 KB (minified + brotli) and can be used without React.
 
 [![npm](https://img.shields.io/npm/v/react-qr-lite)](https://www.npmjs.com/package/react-qr-lite)
 [![CI](https://github.com/yama-io/react-qr-lite/actions/workflows/ci.yml/badge.svg)](https://github.com/yama-io/react-qr-lite/actions/workflows/ci.yml)
@@ -10,7 +10,7 @@ The encoder is a from-scratch implementation of ISO/IEC 18004 — no wrapper aro
 
 ## Features
 
-- **Tiny** — 4.48 KB core, size-limit enforced (5 KB core / 6 KB with the React component). Lookup tables are computed at runtime instead of shipped in the bundle.
+- **Tiny** — 4.5 KB core, size-limit enforced (5 KB core / 6 KB with the React component). Lookup tables are computed at runtime instead of shipped in the bundle.
 - **Fast** — a typical URL encodes in ~0.2 ms with automatic mask selection (~24 µs with a fixed mask).
 - **Minimal DOM** — all dark modules are drawn as a single run-length-compressed `<path>`; the whole component is 3 DOM nodes (`svg` / `rect` / `path`).
 - **Full encoder** — Numeric / Alphanumeric / Byte (UTF-8) / Kanji modes with automatic mode detection, versions 1–40, all four error correction levels, automatic mask selection, verified end-to-end by decoding the output with [jsQR](https://github.com/cozmo/jsQR) across all 40 versions × 4 EC levels.
@@ -89,6 +89,7 @@ Notes:
 - The SVG has `role="img"`, so give it an accessible name: pass `title` (or `aria-label`) so screen readers can announce what the code links to. For purely decorative codes, pass `aria-hidden` instead.
 - Encoding runs inside `useMemo` and recomputes only when `value` or the encoding options change. When passing a `Uint8Array`, keep the reference stable across renders to avoid re-encoding.
 - If the value cannot be encoded (e.g. too long for version 40), `encode` throws — catch it with an Error Boundary.
+- `<QRCode />` works inside React Server Components as-is (no `"use client"` needed): it uses only `useMemo` and `forwardRef`, both part of React's server subset. This is verified by an RSC smoke test that renders the component through the Flight renderer under the `react-server` condition. Props that only make sense on the client (`ref`, event handlers) still require using it from a client component.
 - The `mask` prop selects the QR mask pattern and shadows the SVG `mask` attribute. To apply a CSS mask to the element, use `style={{ mask: ... }}`.
 - The exact module pattern produced for a given input may change between minor versions as the encoder improves (e.g. better segmentation). What is guaranteed is a valid, scannable symbol — don't snapshot the pixels across upgrades.
 
@@ -102,12 +103,12 @@ Because of this fallback, the exact module pattern for such strings depends on t
 
 ## Bundle size
 
-Measured at v1.0.0. `react` is a peer dependency and is excluded from all measurements.
+Measured at v1.1.0. `react` is a peer dependency and is excluded from all measurements.
 
 | Entry | Tool / bundler | Compression | Size |
 | --- | --- | --- | --- |
-| `react-qr-lite/core` (encoder only) | size-limit (esbuild) | Brotli | 4.48 KB |
-| `react-qr-lite` (with `<QRCode />`) | size-limit (esbuild) | Brotli | 5.00 KB |
+| `react-qr-lite/core` (encoder only) | size-limit (esbuild) | Brotli | 4.5 KB |
+| `react-qr-lite` (with `<QRCode />`) | size-limit (esbuild) | Brotli | 5.05 KB |
 | `react-qr-lite` | [Bundlephobia](https://bundlephobia.com/package/react-qr-lite) (webpack) | Gzip | 5.31 KB (v0.1.0) |
 
 The size-limit numbers are enforced budgets (5 KB core / 6 KB full) — `npm publish` fails if a change exceeds them. Bundlephobia reports a slightly larger number because it measures only the root entry, bundles with webpack (which adds a small runtime wrapper), and compresses with gzip instead of brotli. What your users actually download depends on your CDN: brotli-capable servers deliver close to the size-limit figures.

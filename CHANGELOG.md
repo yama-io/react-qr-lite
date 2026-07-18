@@ -5,7 +5,7 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.1.0] - 2026-07-18
 
 ### Added
 
@@ -19,6 +19,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   browser), where the automatic Kanji/Byte fallback could otherwise cause a
   hydration mismatch. The `DetectModeOptions` type is exported, and
   `detectMode` accepts the same option.
+
+### Tests
+
+- RSC smoke test: `<QRCode />` is rendered through the Flight renderer
+  (`react-server-dom-turbopack`) in a process with Node's `react-server`
+  export condition enabled, proving the component works inside React Server
+  Components without a `"use client"` directive (it uses only
+  `useMemo`/`forwardRef`, which exist in React's server subset). Runs as a
+  second vitest config (`vitest.rsc.config.ts`) chained into `npm test`.
 
 ## [1.0.0] - 2026-07-17
 
