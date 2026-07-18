@@ -201,6 +201,17 @@ describe("detectMode: Kanji", () => {
     expect(detectMode("絵文字🎌入り")).toBe("byte");
     expect(detectMode("ﾊﾝｶｸｶﾅ")).toBe("byte");
   });
+
+  it("allowKanji: false ではKanjiを検出せずbyteになる(他モードは不変)", () => {
+    expect(detectMode("こんにちは", { allowKanji: false })).toBe("byte");
+    expect(detectMode("0123", { allowKanji: false })).toBe("numeric");
+    expect(detectMode("HELLO", { allowKanji: false })).toBe("alphanumeric");
+  });
+
+  it("makeSegments も allowKanji を尊重する", () => {
+    expect(makeSegments("漢字")[0]!.mode).toBe("kanji");
+    expect(makeSegments("漢字", { allowKanji: false })[0]!.mode).toBe("byte");
+  });
 });
 
 describe("ccBits: Kanjiモードの文字数指示子", () => {

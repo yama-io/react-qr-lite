@@ -23,6 +23,17 @@ import { isKanjiEncodable, sjisCode } from "./sjis";
 
 export type Mode = "numeric" | "alphanumeric" | "byte" | "kanji";
 
+/** Options for detectMode / makeSegments. */
+export interface DetectModeOptions {
+  /**
+   * Whether kanji mode may be chosen (default true). Kanji detection depends
+   * on the runtime's TextDecoder("shift_jis") support, so set this to false
+   * when the exact module pattern must be identical across environments
+   * (e.g. server-rendered markup hydrated in a different runtime).
+   */
+  allowKanji?: boolean | undefined;
+}
+
 /** Mode indicators (4 bits) */
 export const MODE_INDICATOR: Readonly<Record<Mode, number>> = {
   numeric: 0b0001,
@@ -80,7 +91,8 @@ const textEncoder = new TextEncoder();
 /* ------------------------------------------------------------------ */
 
 /** Returns the densest mode that can represent the whole string as one segment. */
-export function detectMode(text: string): Mode {
+export function detectMode(text: string, options: DetectModeOptions = {}): Mode {
+  const { allowKanji = true } = options;
   let alnum = true;
   let numeric = true;
   let hasAscii = false;
@@ -101,7 +113,7 @@ export function detectMode(text: string): Mode {
   // Strings containing ASCII (single-byte SJIS) cannot use kanji mode.
   // Kanji applies only when every char maps to double-byte SJIS
   // (13 bits/char, versus 24 bits/char for UTF-8 in byte mode)
-  if (!hasAscii && isKanjiEncodable(text)) return "kanji";
+  if (!hasAscii && allowKanji && isKanjiEncodable(text)) return "kanji";
   return "byte";
 }
 
@@ -222,8 +234,11 @@ export function makeKanjiSegment(text: string): Segment {
  * Builds the optimal segment list for a string.
  * Currently a single segment with auto-detected mode.
  */
-export function makeSegments(text: string): Segment[] {
-  const mode = detectMode(text);
+export function makeSegments(
+  text: string,
+  options: DetectModeOptions = {},
+): Segment[] {
+  const mode = detectMode(text, options);
   if (mode === "numeric") return [makeNumericSegment(text)];
   if (mode === "alphanumeric") return [makeAlphanumericSegment(text)];
   if (mode === "kanji") return [makeKanjiSegment(text)];

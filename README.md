@@ -80,6 +80,7 @@ const d = toSvgPath(matrix); // ready to use as <path d={d}>
 | `version` | `number` | auto | Pin the symbol version (1–40). Defaults to the smallest version that fits. |
 | `minVersion` | `number` | `1` | Lower bound for automatic version selection. |
 | `mask` | `number` | auto | Mask pattern 0–7. Auto-selects the lowest-penalty mask by default. |
+| `allowKanji` | `boolean` | `true` | Allow Kanji mode for strings made entirely of double-byte Shift-JIS characters. Set `false` to always use Byte mode (UTF-8) for such strings, making the output identical across runtimes — see [Text encoding](#text-encoding). |
 
 All other props are spread onto the `<svg>` element, and `ref` is forwarded to it.
 
@@ -96,6 +97,8 @@ Notes:
 Strings are encoded as UTF-8 in Byte mode, without an ECI header. Strictly speaking the spec's default Byte-mode charset is ISO 8859-1, but ECI-less UTF-8 is the de facto standard that every modern reader (ZXing, iOS, Android) assumes — and an explicit ECI header actually breaks some older scanners.
 
 Strings consisting entirely of Shift-JIS double-byte characters are encoded in Kanji mode instead (13 bits per character instead of UTF-8 bytes). The Unicode→Shift-JIS mapping is built at runtime from the platform's native `TextDecoder("shift_jis")` rather than shipping a conversion table (~0.4 KB of code, ~5 ms one-time cost). On runtimes without Shift-JIS support, encoding falls back to Byte mode (UTF-8) automatically — the result is always a valid, scannable QR code.
+
+Because of this fallback, the exact module pattern for such strings depends on the runtime: an environment with Shift-JIS support produces a (smaller) Kanji-mode symbol, one without produces a Byte-mode symbol. If you server-render on a runtime without Shift-JIS support (e.g. some edge runtimes) and hydrate in a browser, the two would disagree and React reports a hydration mismatch. Pass `allowKanji={false}` (or `{ allowKanji: false }` to `encode` / `chooseVersion`) to always use Byte mode for such strings — the output is then byte-for-byte identical everywhere.
 
 ## Bundle size
 

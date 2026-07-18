@@ -96,6 +96,12 @@ const QRCODE_PROPS: Row[] = [
     def: "auto",
     desc: "Mask pattern 0–7. Auto-selects the lowest-penalty mask by default.",
   },
+  {
+    name: "allowKanji",
+    type: "boolean",
+    def: "true",
+    desc: "Allow Kanji mode for strings made entirely of double-byte Shift-JIS characters. Set false to always use Byte mode (UTF-8) for such strings, making the output identical on runtimes with and without shift_jis support (deterministic SSR/hydration).",
+  },
 ];
 
 const ENCODE_OPTIONS: Row[] = [
@@ -122,6 +128,12 @@ const ENCODE_OPTIONS: Row[] = [
     type: "number",
     def: "auto",
     desc: "Mask number 0–7 (auto-selects the lowest 4-rule penalty of the 8 masks by default).",
+  },
+  {
+    name: "allowKanji",
+    type: "boolean",
+    def: "true",
+    desc: "Allow Kanji mode in automatic mode detection. Kanji detection depends on the runtime's TextDecoder(\"shift_jis\") support; set false for output that is identical across environments.",
   },
 ];
 
@@ -160,8 +172,8 @@ const QRMATRIX_FIELDS: Row[] = [
 
 const CORE_HELPERS: { name: string; desc: string }[] = [
   { name: "getModule(matrix, x, y)", desc: "Reads one module from a QRMatrix as 0 | 1. Coordinates are (x, y) = (column, row)." },
-  { name: "detectMode(text)", desc: 'Returns the mode auto-detection would pick for a string: "numeric" | "alphanumeric" | "kanji" | "byte".' },
-  { name: "chooseVersion(data, options?)", desc: "The smallest version (1–40) that can hold the data — what encode() auto-selects. Options: ecLevel (default \"M\") and minVersion. Throws when the data does not fit any version." },
+  { name: "detectMode(text, options?)", desc: 'Returns the mode auto-detection would pick for a string: "numeric" | "alphanumeric" | "kanji" | "byte". Options: allowKanji (default true).' },
+  { name: "chooseVersion(data, options?)", desc: "The smallest version (1–40) that can hold the data — what encode() auto-selects. Options: ecLevel (default \"M\"), minVersion and allowKanji. Throws when the data does not fit any version." },
 ];
 
 function PropsTable({ rows, nameHeader = "Prop" }: { rows: Row[]; nameHeader?: string }) {

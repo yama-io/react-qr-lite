@@ -10,7 +10,7 @@
 export { encode, chooseVersion } from "./encode";
 export type { EncodeOptions } from "./encode";
 export { detectMode } from "./segments";
-export type { Mode } from "./segments";
+export type { DetectModeOptions, Mode } from "./segments";
 export type { ECLevel } from "./capacity";
 export { getModule } from "./matrix";
 export type { QRMatrix } from "./matrix";

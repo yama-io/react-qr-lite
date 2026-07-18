@@ -6,4 +6,4 @@
 export { QRCode } from "./QRCode";
 export type { QRCodeProps } from "./QRCode";
 export { chooseVersion, detectMode, encode, getModule, toSvgPath } from "./core";
-export type { ECLevel, EncodeOptions, Mode, QRMatrix } from "./core";
+export type { DetectModeOptions, ECLevel, EncodeOptions, Mode, QRMatrix } from "./core";

@@ -16,6 +16,14 @@ export interface EncodeOptions {
   minVersion?: number | undefined;
   /** Mask number 0-7 (default -1 = auto-select the lowest penalty) */
   mask?: number | undefined;
+  /**
+   * Allow kanji mode in automatic mode detection (default true). Kanji
+   * detection depends on the runtime's TextDecoder("shift_jis") support, so
+   * set this to false when the exact module pattern must be identical across
+   * environments (e.g. server-rendered markup hydrated in a different
+   * runtime).
+   */
+  allowKanji?: boolean | undefined;
 }
 
 /**
@@ -24,7 +32,8 @@ export interface EncodeOptions {
  *
  * Strings get automatic mode detection (digits -> Numeric, the alphanumeric
  * charset -> Alphanumeric, all double-byte SJIS -> Kanji, anything else ->
- * Byte/UTF-8). A Uint8Array always uses Byte mode.
+ * Byte/UTF-8). A Uint8Array always uses Byte mode. Kanji detection can be
+ * turned off with `allowKanji: false` for environment-independent output.
  *
  * @throws {RangeError} when data is neither a string nor a Uint8Array, or an
  *                      option is invalid
@@ -34,8 +43,14 @@ export function encode(
   data: string | Uint8Array,
   options: EncodeOptions = {},
 ): QRMatrix {
-  const segments = toSegments(data, "encode");
-  const { ecLevel = "M", version, minVersion = 1, mask = -1 } = options;
+  const {
+    ecLevel = "M",
+    version,
+    minVersion = 1,
+    mask = -1,
+    allowKanji = true,
+  } = options;
+  const segments = toSegments(data, "encode", allowKanji);
   let v: number;
   if (version !== undefined) {
     assertVersion(version);
@@ -57,11 +72,11 @@ export function encode(
  */
 export function chooseVersion(
   data: string | Uint8Array,
-  options: Pick<EncodeOptions, "ecLevel" | "minVersion"> = {},
+  options: Pick<EncodeOptions, "ecLevel" | "minVersion" | "allowKanji"> = {},
 ): number {
-  const { ecLevel = "M", minVersion = 1 } = options;
+  const { ecLevel = "M", minVersion = 1, allowKanji = true } = options;
   return chooseVersionForSegments(
-    toSegments(data, "chooseVersion"),
+    toSegments(data, "chooseVersion", allowKanji),
     ecLevel,
     minVersion,
   );
@@ -71,7 +86,11 @@ export function chooseVersion(
  * Validates public-API input and builds its segment list.
  * @param fn public function name used as the error message prefix
  */
-function toSegments(data: string | Uint8Array, fn: string): Segment[] {
+function toSegments(
+  data: string | Uint8Array,
+  fn: string,
+  allowKanji: boolean,
+): Segment[] {
   if (typeof data !== "string" && !(data instanceof Uint8Array)) {
     throw new RangeError(`${fn}: data must be a string or Uint8Array`);
   }
@@ -85,6 +104,6 @@ function toSegments(data: string | Uint8Array, fn: string): Segment[] {
     );
   }
   return typeof data === "string"
-    ? makeSegments(data)
+    ? makeSegments(data, { allowKanji })
     : [makeByteSegment(data)];
 }

@@ -5,6 +5,21 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- `allowKanji` option on `encode` / `chooseVersion` (and as a `<QRCode />`
+  prop), default `true`. Setting it to `false` excludes Kanji mode from
+  automatic mode detection, so all-double-byte strings are always encoded in
+  Byte mode (UTF-8). Kanji detection depends on the runtime's
+  `TextDecoder("shift_jis")` support; pinning it off makes the generated
+  symbol byte-for-byte identical across environments — use this when server
+  and client runtimes may differ (e.g. edge-runtime SSR hydrated in a
+  browser), where the automatic Kanji/Byte fallback could otherwise cause a
+  hydration mismatch. The `DetectModeOptions` type is exported, and
+  `detectMode` accepts the same option.
+
 ## [1.0.0] - 2026-07-17
 
 First stable release. From this version on, the exported API is covered by

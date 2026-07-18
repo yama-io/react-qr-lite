@@ -36,6 +36,14 @@ export interface QRCodeProps
   /** Mask number 0-7 (auto-selected by default) */
   mask?: number | undefined;
   /**
+   * Allow Kanji mode for strings made entirely of double-byte Shift-JIS
+   * characters (default true). Kanji detection depends on the runtime's
+   * TextDecoder("shift_jis") support, so set this to false when server and
+   * client runtimes may differ (e.g. edge-runtime SSR) — the rendered SVG is
+   * then identical everywhere and hydration cannot mismatch.
+   */
+  allowKanji?: boolean | undefined;
+  /**
    * Quiet zone width in modules (default 4, the spec's recommendation).
    * Must be a non-negative finite number.
    */
@@ -73,6 +81,7 @@ export const QRCode = forwardRef<SVGSVGElement, QRCodeProps>(function QRCode(
     version,
     minVersion,
     mask,
+    allowKanji,
     margin = 4,
     fgColor = "#000000",
     bgColor = "#FFFFFF",
@@ -89,9 +98,9 @@ export const QRCode = forwardRef<SVGSVGElement, QRCodeProps>(function QRCode(
   }
 
   const { d, moduleCount } = useMemo(() => {
-    const matrix = encode(value, { ecLevel, version, minVersion, mask });
+    const matrix = encode(value, { ecLevel, version, minVersion, mask, allowKanji });
     return { d: toSvgPath(matrix), moduleCount: matrix.size };
-  }, [value, ecLevel, version, minVersion, mask]);
+  }, [value, ecLevel, version, minVersion, mask, allowKanji]);
 
   const total = moduleCount + margin * 2;
 

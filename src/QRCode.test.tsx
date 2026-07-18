@@ -66,6 +66,13 @@ describe("<QRCode />", () => {
     expect(html).not.toContain('role="img"');
   });
 
+  it("allowKanji={false} はByteモードで符号化する(既定はKanjiモード)", () => {
+    const html = renderToStaticMarkup(<QRCode value="漢字" allowKanji={false} />);
+    const byte = toSvgPath(encode("漢字", { ecLevel: "M", allowKanji: false }));
+    expect(html).toContain(`d="${byte}"`);
+    expect(byte).not.toBe(toSvgPath(encode("漢字", { ecLevel: "M" })));
+  });
+
   it("Uint8Array入力もエンコードできる", () => {
     const bytes = new Uint8Array([1, 2, 3, 250]);
     const html = renderToStaticMarkup(<QRCode value={bytes} />);

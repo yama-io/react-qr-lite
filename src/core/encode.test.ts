@@ -174,6 +174,16 @@ describe("chooseVersion(公開API): データから直接バージョンを返�
     expect(chooseVersion("HI", { minVersion: 5 })).toBe(5);
   });
 
+  it("allowKanji: false ではByteモードとしてバージョンを選ぶ", () => {
+    const text = "漢".repeat(30);
+    expect(chooseVersion(text, { allowKanji: false })).toBe(
+      chooseVersion(new TextEncoder().encode(text)),
+    );
+    expect(chooseVersion(text)).toBeLessThanOrEqual(
+      chooseVersion(text, { allowKanji: false }),
+    );
+  });
+
   it("encode と同じ入力検証(型・上限長・不正 minVersion)", () => {
     expect(() => chooseVersion(123 as unknown as string)).toThrow(
       /string or Uint8Array/,
@@ -214,6 +224,16 @@ describe("encode: オプション", () => {
     expect(() => encode(new Uint8Array(2954), { ecLevel: "L" })).toThrow(
       /too long/,
     );
+  });
+
+  it("allowKanji: false は全角のみの文字列もByteモードで符号化する(UTF-8バイト入力と同一の行列)", () => {
+    const text = "環境非依存の出力";
+    const m = encode(text, { allowKanji: false });
+    const byte = encode(new TextEncoder().encode(text));
+    expect(m.version).toBe(byte.version);
+    expect(m.mask).toBe(byte.mask);
+    expect(m.modules).toEqual(byte.modules);
+    expect(decode(m).data).toBe(text);
   });
 
   it("文字列でもUint8Arrayでもない data は RangeError", () => {
